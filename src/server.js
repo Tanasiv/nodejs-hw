@@ -1,8 +1,9 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import pinoHttp from 'pino-http';
 
-const express = require('express');
-const cors = require('cors');
-const pinoHttp = require('pino-http');
+dotenv.config();
 
 const app = express();
 
