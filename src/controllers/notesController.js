@@ -2,11 +2,54 @@ import createHttpError from 'http-errors';
 import { Note } from '../models/note.js';
 
 export const getAllNotes = async (req, res) => {
-  const notes = await Note.find();
+  const {
+    page = 1,
+    perPage = 10,
+    tag,
+    search,
+  } = req.query;
 
-  res.status(200).json(notes);
+  const skip = (page - 1) * perPage;
+
+  const filter = {};
+
+  if (tag) {
+    filter.tag = tag;
+  }
+
+  if (search) {
+    filter.$or = [
+      {
+        title: {
+          $regex: search,
+          $options: 'i',
+        },
+      },
+      {
+        content: {
+          $regex: search,
+          $options: 'i',
+        },
+      },
+    ];
+  }
+
+  const notes = await Note.find(filter)
+    .skip(skip)
+    .limit(perPage);
+
+  const totalNotes = await Note.countDocuments(filter);
+
+  const totalPages = Math.ceil(totalNotes / perPage);
+
+  res.status(200).json({
+    page: Number(page),
+    perPage: Number(perPage),
+    totalNotes,
+    totalPages,
+    notes,
+  });
 };
-
 export const getNoteById = async (req, res) => {
   const { noteId } = req.params;
 
@@ -19,18 +62,20 @@ export const getNoteById = async (req, res) => {
   res.status(200).json(note);
 };
 
+
 export const createNote = async (req, res) => {
   const note = await Note.create(req.body);
 
   res.status(201).json(note);
 };
 
+
 export const updateNote = async (req, res) => {
   const { noteId } = req.params;
 
   const note = await Note.findByIdAndUpdate(noteId, req.body, {
-  returnDocument: 'after',
-});
+    returnDocument: 'after',
+  });
 
   if (!note) {
     throw createHttpError(404, 'Note not found');
@@ -38,6 +83,7 @@ export const updateNote = async (req, res) => {
 
   res.status(200).json(note);
 };
+
 
 export const deleteNote = async (req, res) => {
   const { noteId } = req.params;
