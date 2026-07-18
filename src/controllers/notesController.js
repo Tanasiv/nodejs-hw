@@ -34,11 +34,12 @@ export const getAllNotes = async (req, res) => {
     ];
   }
 
-  const notes = await Note.find(filter)
-    .skip(skip)
-    .limit(perPage);
-
-  const totalNotes = await Note.countDocuments(filter);
+  const [notes, totalNotes] = await Promise.all([
+    Note.find(filter)
+      .skip(skip)
+      .limit(perPage),
+    Note.countDocuments(filter),
+  ]);
 
   const totalPages = Math.ceil(totalNotes / perPage);
 
@@ -50,6 +51,8 @@ export const getAllNotes = async (req, res) => {
     notes,
   });
 };
+
+
 export const getNoteById = async (req, res) => {
   const { noteId } = req.params;
 
@@ -73,9 +76,13 @@ export const createNote = async (req, res) => {
 export const updateNote = async (req, res) => {
   const { noteId } = req.params;
 
-  const note = await Note.findByIdAndUpdate(noteId, req.body, {
-    returnDocument: 'after',
-  });
+  const note = await Note.findByIdAndUpdate(
+    noteId,
+    req.body,
+    {
+      returnDocument: 'after',
+    },
+  );
 
   if (!note) {
     throw createHttpError(404, 'Note not found');
