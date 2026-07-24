@@ -5,6 +5,18 @@ import { User } from '../models/user.js';
 import { Session } from '../models/session.js';
 import { createSession, setSessionCookies } from '../services/auth.js';
 
+const clearSessionCookies = (res) => {
+  const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+  };
+
+  res.clearCookie('sessionId', options);
+  res.clearCookie('accessToken', options);
+  res.clearCookie('refreshToken', options);
+};
+
 export const registerUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -65,6 +77,9 @@ export const refreshUserSession = async (req, res) => {
   }
 
   if (new Date() > session.refreshTokenValidUntil) {
+    await Session.deleteOne({ _id: session._id });
+    clearSessionCookies(res);
+
     throw createHttpError(401, 'Session token expired');
   }
 
@@ -78,6 +93,7 @@ export const refreshUserSession = async (req, res) => {
     message: 'Session refreshed',
   });
 };
+
 export const logoutUser = async (req, res) => {
   const { sessionId } = req.cookies;
 
@@ -85,23 +101,7 @@ export const logoutUser = async (req, res) => {
     await Session.deleteOne({ _id: sessionId });
   }
 
-  res.clearCookie('sessionId', {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-  });
-
-  res.clearCookie('accessToken', {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-  });
-
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-  });
+  clearSessionCookies(res);
 
   res.sendStatus(204);
 };
