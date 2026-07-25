@@ -4,14 +4,14 @@ import { Session } from '../models/session.js';
 import { User } from '../models/user.js';
 
 export const authenticate = async (req, res, next) => {
-  const { sessionId, accessToken } = req.cookies;
+  const { accessToken, sessionId } = req.cookies;
 
   if (!accessToken) {
-    return next(createHttpError(401, 'Missing access token'));
+    throw createHttpError(401, 'Missing access token');
   }
 
   if (!sessionId) {
-    return next(createHttpError(401, 'Session not found'));
+    throw createHttpError(401, 'Session not found');
   }
 
   const session = await Session.findOne({
@@ -20,17 +20,17 @@ export const authenticate = async (req, res, next) => {
   });
 
   if (!session) {
-    return next(createHttpError(401, 'Session not found'));
+    throw createHttpError(401, 'Session not found');
   }
 
   if (new Date() > session.accessTokenValidUntil) {
-    return next(createHttpError(401, 'Access token expired'));
+    throw createHttpError(401, 'Access token expired');
   }
 
   const user = await User.findById(session.userId);
 
   if (!user) {
-    return next(createHttpError(401));
+    throw createHttpError(401);
   }
 
   req.user = user;
